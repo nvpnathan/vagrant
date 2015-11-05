@@ -1,0 +1,39 @@
+$container = "vmwarecna/nginx"
+
+$deploy_nginx = <<SCRIPT
+#!/bin/bash
+set -ux
+docker pull #{$container}
+docker run -d -p 80:80 #{$container}
+SCRIPT
+
+Vagrant.configure(2) do |config|
+
+  config.vm.box = "dummy"
+  # Specify the default SSH username and private key
+  config.ssh.username = "root"
+  config.ssh.private_key_path = "demo.pem"
+  config.vm.provision "shell", inline: $deploy_nginx, privileged: false
+
+  # Configure the OpenStack provider for Vagrant
+  config.vm.provider "openstack" do |os|
+
+    # Specify OpenStack authentication information
+    os.openstack_auth_url = "https://vio.corp.local:5000/v2.0"
+    os.openstack_network_url = "https://vio.corp.local:9696/v2.0"
+    os.username = "demo"
+    os.password = "VMware1!"
+    os.tenant_name = "demo"
+
+    # Specify instance information
+    os.server_name = "vagrant-test"
+    os.flavor = "m1.small"
+    os.image = "photon"
+    os.floating_ip_pool = "ext-net"
+    os.networks = [ "photon-net" ]
+    os.keypair_name = "demo"
+    os.security_groups = ["default"]
+    os.sync_method = "none"
+  end
+end
+
